@@ -18,13 +18,14 @@ df_smedia <- read_csv("data/social_media_timestamp.csv")
 # Clean df_web ---------------
 # country names
 df_names <- names(df_web)
+df_names_smedia <- unique(df_smedia$Country)
 
 ## Clean website df --------------
 # empty df to save time stamps
 df_web_clean <- NULL
 
 # df with time stamps, cases and country
-for (i in c(1:16, 19)) {
+for (i in c(1:19)) {
   # create dataframe for each country from the json file
   assign("df", 
          rownames_to_column(as.data.frame(do.call(rbind, df_web[[i]])), 
@@ -73,18 +74,35 @@ df_all <- df_web_clean %>%
   arrange(Country, datetime_web)
 
 # Descriptive analysis ---------------
+# merged dataset -----------
 df_all_country <- df_all %>% 
   select(diff_min, Country, date_web) %>% 
   group_by(Country) %>% 
-  ungroup()
-plot <- df_all_country %>% 
-  ggplot(aes(x = date_web, y = diff_min)) +
-  geom_line(size = 1, colour = "blue") +
+  ungroup() %>% 
+  # Create new variable with three categories depending on difference in minutes
+  mutate(diff_min_num = as.numeric(diff_min),
+         diff_min_cat = case_when(diff_min_num < 0 ~ "Difference < 0",
+                                  diff_min_num == 0 ~ "Difference = 0",
+                                  diff_min_num > 0 ~ "Difference > 0",
+                                  TRUE ~ NA_character_))
+
+## Plot with all countries ------------
+plot <- df_all_country %>%
+  # delete NAs
+  filter(!is.na(diff_min)) %>% 
+  # plot categories by colour
+  ggplot(aes(x = date_web, y = diff_min, colour = diff_min_cat)) +
+  geom_line(size = 1, colour = "light grey") +
+  geom_point(size = 2) +
+  # specific colour according to category
+  scale_color_manual(values = c("Difference < 0" = "red", 
+                                "Difference = 0" = "black",
+                                "Difference > 0" = "blue")) +
   scale_x_date(breaks = "1 day") +
   scale_y_continuous()+
   geom_hline(yintercept = 0,
              linetype = "dashed",
-             colour = "red") +
+             colour = "black") +
   theme_classic() +
   labs(title = "Time difference (minutes) between website pages and social media posts \non COVID-19 cases in Europe",
        x = "Date (year, month and day)",
@@ -94,9 +112,41 @@ plot <- df_all_country %>%
                                    vjust = 0.5,
                                    hjust = 1)) +
   facet_wrap(~ Country)
-plot
-ggsave("outputs/time_diff.jpeg", plot)
 
+
+
+plot
+ggsave(paste("outputs/time_diff_", Sys.Date(), ".jpeg", sep=""), plot)
+
+## Plot for a single country ------------
+country = "Andorra"
+
+plot_country <- df_all_country %>% 
+  filter(Country == country) %>% 
+  filter(!is.na(diff_min)) %>% 
+  ggplot(aes(x = date_web, y = diff_min, colour = diff_min_cat)) +
+  geom_line(size = 1, colour = "light grey") +
+  geom_point(size = 2) +
+  # specific colour according to category
+  scale_color_manual(values = c("Difference < 0" = "red", 
+                                "Difference = 0" = "black",
+                                "Difference > 0" = "blue")) +
+  scale_x_date(breaks = "1 day") +
+  scale_y_continuous()+
+  geom_hline(yintercept = 0,
+             linetype = "dashed",
+             colour = "black") +
+  theme_classic() +
+  labs(title = paste("Time difference (minutes) between website pages and social media posts \non COVID-19 cases in ", country, sep = ""),
+       x = "Date (year, month and day)",
+       y = "Time difference (minutes)",
+       caption = "Website earlier (difference < 0) or social media earlier (difference > 0)")+
+  theme(axis.text.x = element_text(angle = 90,
+                                   vjust = 0.5,
+                                   hjust = 1)) 
+ggsave(paste("outputs/time_diff", Sys.Date(), country, ".jpeg", sep="_"), plot)
+
+## Countries according to website/social media timeliness ----------------
 # Web earlier
 df_all_country_web <- df_all_country %>% 
   filter(diff_min < 0)
@@ -104,3 +154,4 @@ df_all_country_web <- df_all_country %>%
 # Social media earlier
 df_all_country_smedia <- df_all_country %>% 
   filter(diff_min >= 0)
+
