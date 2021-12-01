@@ -2,7 +2,7 @@
 #' Title:
 #' Author: Laura Espinosa
 #' Date created: 11 November 2021
-#' Date modified: 16 November 2021
+#' Date modified: 1 December 2021
 
 # Packages --------------
 library(pacman) # install.packages('pacman') if the package is not installed
@@ -25,7 +25,7 @@ df_names_smedia <- unique(df_smedia$Country)
 df_web_clean <- NULL
 
 # df with time stamps, cases and country
-for (i in c(1:19)) {
+for (i in c(1:20)) {
   # create dataframe for each country from the json file
   assign("df", 
          rownames_to_column(as.data.frame(do.call(rbind, df_web[[i]])), 
@@ -98,7 +98,7 @@ plot <- df_all_country %>%
   scale_color_manual(values = c("Difference < 0" = "red", 
                                 "Difference = 0" = "black",
                                 "Difference > 0" = "blue")) +
-  scale_x_date(breaks = "1 day") +
+  scale_x_date(breaks = "2 days") +
   scale_y_continuous()+
   geom_hline(yintercept = 0,
              linetype = "dashed",
@@ -107,7 +107,8 @@ plot <- df_all_country %>%
   labs(title = "Time difference (minutes) between website pages and social media posts \non COVID-19 cases in Europe",
        x = "Date (year, month and day)",
        y = "Time difference (minutes)",
-       caption = "Website earlier (difference < 0) or social media earlier (difference > 0)")+
+       color = "Difference* between \nwebsite and social media",
+       caption = "* Website earlier (difference < 0) or social media earlier (difference > 0)")+
   theme(axis.text.x = element_text(angle = 90,
                                    vjust = 0.5,
                                    hjust = 1)) +
@@ -144,6 +145,8 @@ plot_country <- df_all_country %>%
   theme(axis.text.x = element_text(angle = 90,
                                    vjust = 0.5,
                                    hjust = 1)) 
+
+plot_country
 ggsave(paste("outputs/time_diff", Sys.Date(), country, ".jpeg", sep="_"), plot)
 
 ## Countries according to website/social media timeliness ----------------
