@@ -201,7 +201,7 @@ plot_afro <- df_all_country %>%
              linetype = "dashed",
              colour = "black") +
   theme_classic() +
-  labs(title = "Time difference (minutes) between website pages and social media posts \non COVID-19 cases in WHO EURO region",
+  labs(title = "Time difference (minutes) between website pages and social media posts \non COVID-19 cases in WHO AFRO region",
        x = "Date (year, month and day)",
        y = "Time difference (minutes)",
        color = "Source with earliest daily update")+
