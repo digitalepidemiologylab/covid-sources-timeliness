@@ -12,7 +12,8 @@ while (require("pacman") == FALSE) {
 }
 
 # Install and/or load packages
-p_load(plotly, tidyverse, jsonlite, rjson, plyr, hms, gplots, flextable)
+p_load(plotly, tidyverse, jsonlite, rjson, plyr, hms, gplots, flextable, rstatix,
+       coin, ggpubr)
 
 # Import data --------------
 # Data from webscraper
@@ -116,11 +117,47 @@ web_smedia_updates <- full_join(website_updates, smedia_updates,
                             !is.na(update_web) & is.na(update_smedia)  ~ "2. Website update", # only website update
                             is.na(update_web) & !is.na(update_smedia) ~ "3. Social media update", # only social media update
                             !is.na(update_web) & !is.na(update_smedia) ~ "4. Social media & \nwebsite update", # website and social media update
-                            TRUE ~ "None")) %>% 
+                            TRUE ~ "None"),
+         Filter = case_when(WHO_reg == "Africa" & Date <= "2022-02-12" ~ "filter", # to delete entries outside study period
+                            TRUE ~ "keep")) %>% 
+  filter(Filter == "keep") %>% 
   select(Date, Country, WHO_reg, Update) %>%  
   filter(Date >= start_study) %>% 
   arrange(Country, Date) 
   
+## summary table ----------
+updates_tab <- web_smedia_updates %>% 
+  group_by(WHO_reg, Update) %>% 
+  tally() 
+
+updates_total <- updates_tab %>% 
+  dplyr::group_by(WHO_reg) %>% 
+  dplyr::summarise(n = sum(n))
+
+updates_merge <- updates_tab %>% 
+  full_join(updates_total, by = c("WHO_reg", "n")) %>% 
+  arrange(WHO_reg) %>% 
+  mutate(Update = case_when(is.na(Update) ~ "Overall",
+                            TRUE ~ Update),
+         Percentage = case_when(WHO_reg == "Africa" ~ paste(round((n / filter(updates_total, WHO_reg == "Africa")$n * 100), 
+                                                            digits = 1), "%", sep = " "),
+                                WHO_reg == "Europe/EU-EEA" ~ paste(round((n / filter(updates_total, WHO_reg == "Europe/EU-EEA")$n * 100), 
+                                                                   digits = 1), "%", sep = " "),
+                                WHO_reg == "Europe/Non-EU-EEA" ~ paste(round((n / filter(updates_total, WHO_reg == "Europe/Non-EU-EEA")$n * 100), 
+                                                                       digits = 1), "%", sep = " "),
+                                TRUE ~ NA_character_)) %>% 
+  dplyr::rename("WHO region" = WHO_reg,
+                "Number of entries" = n) %>% 
+  flextable() %>% 
+  bold(bold = TRUE, part = "header") %>% 
+  #autofit() %>% 
+  width(width = c(1.8, 1.5, 1.5, 1)) %>% 
+  #align_nottext_col(align = "center", header = TRUE) %>% 
+  align(j = c(3,4), align = "center", part = "all")
+
+updates_merge
+
+## plot with updates ----------------------------
 plot_update <- ggplot(web_smedia_updates, aes(Date, Country)) +
   geom_tile(aes(fill = Update)) +
   scale_x_date(breaks = "2 days", date_labels = "%d %b %Y") +
@@ -389,6 +426,101 @@ df_all_notime <- df_all_country %>%
   group_by(Country) %>% 
   filter(!is.na(diff_min_num))
 
+### t-tests --------------
+#### Europe/Non-EU-EEA ----------------------
+df_all_notime_euro <- df_all_notime %>% 
+  ungroup() %>% 
+  filter(diff_min_cat != "No difference" & WHO_reg == "Europe/Non-EU-EEA") %>% 
+  select(diff_min_cat, diff_min_num) %>% 
+  mutate(diff_min_num = abs(diff_min_num)) 
+
+df_all_notime_euro %>% 
+  group_by(diff_min_cat) %>% 
+  get_summary_stats(diff_min_num, type = "median_iqr")
+
+stat_euro <- df_all_notime_euro %>% 
+  rstatix::wilcox_test(diff_min_num ~ diff_min_cat) %>% 
+  add_significance() 
+stat_euro
+
+stat_euro_size <- df_all_notime_euro %>% 
+  wilcox_effsize(diff_min_num ~ diff_min_cat)
+stat_euro_size
+
+ggplot(df_all_notime_euro, aes(diff_min_cat, diff_min_num)) +
+  geom_boxplot() +
+  stat_pvalue_manual(stat_euro %>% add_xy_position(x = "diff_min_cat"), tip.length = 0) +
+  labs(x = "Earliest source",
+       y = "Difference with the other source (min)",
+       subtitle = get_test_label(stat_euro, detailed = TRUE)) +
+  theme_bw()
+
+
+#### Europe/EU-EEA ----------------------
+df_all_notime_eueea <- df_all_notime %>% 
+  ungroup() %>% 
+  filter(diff_min_cat != "No difference" & WHO_reg == "Europe/EU-EEA") %>% 
+  select(diff_min_cat, diff_min_num) %>% 
+  mutate(diff_min_num = abs(diff_min_num)) 
+
+df_all_notime_eueea %>% 
+  group_by(diff_min_cat) %>% 
+  get_summary_stats(diff_min_num, type = "median_iqr")
+
+stat_eueea <- df_all_notime_eueea %>% 
+  rstatix::wilcox_test(diff_min_num ~ diff_min_cat) %>% 
+  add_significance() 
+stat_eueea
+
+stat_eueea_size <- df_all_notime_eueea %>% 
+  wilcox_effsize(diff_min_num ~ diff_min_cat)
+stat_eueea_size
+
+ggplot(df_all_notime_eueea, aes(diff_min_cat, diff_min_num)) +
+  geom_boxplot() +
+  stat_pvalue_manual(stat_eueea %>% add_xy_position(x = "diff_min_cat"), tip.length = 0) +
+  labs(x = "Earliest source",
+       y = "Difference with the other source (min)",
+       subtitle = get_test_label(stat_eueea, detailed = TRUE)) +
+  theme_bw()
+
+
+#### Africa ----------------------
+df_all_notime_afro <- df_all_notime %>% 
+  ungroup() %>% 
+  filter(diff_min_cat != "No difference" & WHO_reg == "Africa") %>% 
+  select(diff_min_cat, diff_min_num) %>% 
+  mutate(diff_min_num = abs(diff_min_num)) 
+
+df_all_notime_afro %>% 
+  group_by(diff_min_cat) %>% 
+  get_summary_stats(diff_min_num, type = "median_iqr")
+
+stat_afro <- df_all_notime_afro %>% 
+  rstatix::wilcox_test(diff_min_num ~ diff_min_cat) %>% 
+  add_significance() 
+stat_afro
+
+stat_afro_size <- df_all_notime_afro %>% 
+  wilcox_effsize(diff_min_num ~ diff_min_cat)
+stat_afro_size
+
+ggplot(df_all_notime_afro, aes(diff_min_cat, diff_min_num)) +
+  geom_boxplot() +
+  stat_pvalue_manual(stat_afro %>% add_xy_position(x = "diff_min_cat"), tip.length = 0) +
+  labs(x = "Earliest source",
+       y = "Difference with the other source (min)",
+       subtitle = get_test_label(stat_afro, detailed = TRUE)) +
+  theme_bw()
+
+### All regions ------------
+stat_all <- rbind(stat_euro, stat_eueea, stat_afro) 
+stat_all %>% 
+  mutate(p = formatC(p, format = "e", digits = 2)) %>% 
+  flextable()
+
+
+### Plots ---------------
 plot_notime <- df_all_notime %>% 
   filter(diff_min_cat != "No difference") %>% 
   ggplot(aes(x = Country, y = diff_min_num, colour = diff_min_cat)) +
