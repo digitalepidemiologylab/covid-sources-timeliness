@@ -146,7 +146,7 @@ updates_merge <- updates_tab %>%
                                 WHO_reg == "Europe/Non-EU-EEA" ~ paste(round((n / filter(updates_total, WHO_reg == "Europe/Non-EU-EEA")$n * 100), 
                                                                        digits = 1), "%", sep = " "),
                                 TRUE ~ NA_character_)) %>% 
-  dplyr::rename("WHO region" = WHO_reg,
+  dplyr::rename("Region" = WHO_reg,
                 "Number of entries" = n) %>% 
   flextable() %>% 
   bold(bold = TRUE, part = "header") %>% 
@@ -240,11 +240,12 @@ df_all_country <- df_all %>%
          diff_min_cat = case_when(diff_min_num < 0 ~ "Website",
                                   diff_min_num == 0 ~ "No difference",
                                   diff_min_num > 0 ~ "Social media",
-                                  TRUE ~ NA_character_))
+                                  TRUE ~ NA_character_),
+         diff_min_num = abs(diff_min_num))
 
 ## diff per source, country and region ------------------
 diff_stats <- df_all_country %>% 
-  mutate(diff_min_num = abs(diff_min_num)) %>% 
+  #mutate(diff_min_num = abs(diff_min_num)) %>% 
   dplyr::group_by(diff_min_cat, WHO_reg) %>% 
   dplyr::summarise("Median \n(min)" = round(median(diff_min_num), digits = 2),
                    "Quartile 1 (Q1) \n(min)" = round(quantile(diff_min_num, prob = 0.25, na.rm = TRUE), digits = 2),
@@ -252,7 +253,7 @@ diff_stats <- df_all_country %>%
                    "Interquartile range \n(Q3-Q1) (min)" = round(IQR(diff_min_num, na.rm = TRUE), digits = 2)) %>% 
   filter(!is.na(diff_min_cat)) %>% 
   filter(diff_min_cat != "No difference") %>% 
-  rename("Earliest source" = diff_min_cat,
+  dplyr::rename("Earliest source" = diff_min_cat,
          "WHO region" = WHO_reg) %>% 
   flextable() %>% 
   bold(bold = TRUE, part = "header") %>% 
@@ -265,19 +266,17 @@ diff_stats
 ## Plot with all countries and regions ------------
 plot <- df_all_country %>%
   # delete NAs
-  filter(!is.na(diff_min)) %>% 
-  arrange(desc(diff_min)) %>% 
+  filter(!is.na(diff_min_num)) %>% 
+  arrange(desc(diff_min_num)) %>% 
   # plot categories by colour
-  ggplot(aes(x = date_web, y = diff_min, colour = diff_min_cat)) +
+  ggplot(aes(x = date_web, y = diff_min_num, colour = diff_min_cat)) +
   geom_line(size = 1, colour = "light grey") +
-  geom_point(size = 2) +
-  geom_point(aes(x = date_web, y = diff_min), alpha = 0) +
+  #geom_point(size = 2, shape = diff_min_cat) +
+  geom_point(aes(x = date_web, y = diff_min_num, shape = diff_min_cat, colour = diff_min_cat)) +
   # specific colour according to category
-  scale_color_manual(values = c("Website" = "red", 
-                                "No difference" = "black",
-                                "Social media" = "blue")) +
+  scale_color_manual(values = c("black", "blue", "red")) +
   scale_x_date(breaks = "5 days") +
-  scale_y_continuous()+
+  scale_y_continuous(n.breaks = 4)+
   geom_hline(yintercept = 0,
              linetype = "dashed",
              colour = "black") +
@@ -285,7 +284,7 @@ plot <- df_all_country %>%
   labs(title = "Time difference (minutes) between website pages and social media posts \non COVID-19 cases in WHO EURO and AFRO regions",
        x = "Date (year, month and day)",
        y = "Time difference (minutes)",
-       color = "Source with earliest \ndaily update")+
+       legend = "Source with earliest \ndaily update")+
   theme(axis.text.x = element_text(angle = 90,
                                    vjust = 0.5,
                                    hjust = 1),
@@ -307,24 +306,22 @@ plot_euro <- df_all_country %>%
   filter(WHO_reg == "Europe/Non-EU-EEA" | WHO_reg == "Europe/EU-EEA") %>% 
   arrange(desc(diff_min)) %>% 
   # plot categories by colour
-  ggplot(aes(x = date_web, y = diff_min, colour = diff_min_cat)) +
+  ggplot(aes(x = date_web, y = diff_min_num, colour = diff_min_cat)) +
   geom_line(size = 1, colour = "light grey") +
-  geom_point(size = 2) +
-  geom_point(aes(x = date_web, y = diff_min), alpha = 0) +
+  #geom_point(size = 2, shape = diff_min_cat) +
+  geom_point(aes(x = date_web, y = diff_min_num, shape = diff_min_cat, colour = diff_min_cat)) +
   # specific colour according to category
-  scale_color_manual(values = c("Website" = "red", 
-                                "No difference" = "black",
-                                "Social media" = "blue")) +
+  scale_color_manual(values = c("black", "blue", "red")) +
   scale_x_date(breaks = "5 days") +
-  scale_y_continuous()+
+  scale_y_continuous(n.breaks = 4)+
   geom_hline(yintercept = 0,
              linetype = "dashed",
              colour = "black") +
   theme_classic() +
-  labs(title = "Time difference (minutes) between website pages and social media posts \non COVID-19 cases in WHO EURO region",
+  labs(title = "Time difference (minutes) between website pages and social media posts \non COVID-19 cases in WHO European region",
        x = "Date (year, month and day)",
        y = "Time difference (minutes)",
-       color = "Source with earliest \ndaily update")+
+       legend = "Source with earliest \ndaily update")+
   theme(axis.text.x = element_text(angle = 90,
                                    vjust = 0.5,
                                    hjust = 1),
@@ -346,24 +343,22 @@ plot_afro <- df_all_country %>%
   filter(WHO_reg == "Africa") %>% 
   arrange(desc(diff_min)) %>% 
   # plot categories by colour
-  ggplot(aes(x = date_web, y = diff_min, colour = diff_min_cat)) +
+  ggplot(aes(x = date_web, y = diff_min_num, colour = diff_min_cat)) +
   geom_line(size = 1, colour = "light grey") +
-  geom_point(size = 2) +
-  geom_point(aes(x = date_web, y = diff_min), alpha = 0) +
+  #geom_point(size = 2, shape = diff_min_cat) +
+  geom_point(aes(x = date_web, y = diff_min_num, shape = diff_min_cat, colour = diff_min_cat)) +
   # specific colour according to category
-  scale_color_manual(values = c("Website" = "red", 
-                                "No difference" = "black",
-                                "Social media" = "blue")) +
+  scale_color_manual(values = c("black", "blue", "red")) +
   scale_x_date(breaks = "5 days") +
-  scale_y_continuous()+
+  scale_y_continuous(n.breaks = 4)+
   geom_hline(yintercept = 0,
              linetype = "dashed",
              colour = "black") +
   theme_classic() +
-  labs(title = "Time difference (minutes) between website pages and social media posts \non COVID-19 cases in WHO AFRO region",
+  labs(title = "Time difference (minutes) between website pages and social media posts \non COVID-19 cases in WHO African region",
        x = "Date (year, month and day)",
        y = "Time difference (minutes)",
-       color = "Source with earliest \ndaily update")+
+       legend = "Source with earliest \ndaily update")+
   theme(axis.text.x = element_text(angle = 90,
                                    vjust = 0.5,
                                    hjust = 1),
@@ -389,32 +384,29 @@ plot_country <- df_all_country %>%
   filter(Country == country) %>% 
   arrange(desc(diff_min)) %>% 
   # plot categories by colour
-  ggplot(aes(x = date_web, y = diff_min, colour = diff_min_cat)) +
+  ggplot(aes(x = date_web, y = diff_min_num, colour = diff_min_cat)) +
   geom_line(size = 1, colour = "light grey") +
-  geom_point(size = 2) +
-  geom_point(aes(x = date_web, y = diff_min), alpha = 0) +
+  #geom_point(size = 2, shape = diff_min_cat) +
+  geom_point(aes(x = date_web, y = diff_min_num, shape = diff_min_cat, colour = diff_min_cat)) +
   # specific colour according to category
-  scale_color_manual(values = c("Website" = "red", 
-                                "No difference" = "black",
-                                "Social media" = "blue")) +
+  scale_color_manual(values = c("black", "blue", "red")) +
   scale_x_date(breaks = "5 days") +
-  scale_y_continuous()+
+  scale_y_continuous(n.breaks = 4)+
   geom_hline(yintercept = 0,
              linetype = "dashed",
              colour = "black") +
   theme_classic() +
-  labs(title = "Time difference (minutes) between website pages and social media posts \non COVID-19 cases in WHO EURO region",
+  labs(title = paste("Time difference (minutes) between website pages and social media posts \non COVID-19 cases in ", country, sep = ""),
        x = "Date (year, month and day)",
        y = "Time difference (minutes)",
-       color = "Source with earliest daily update")+
+       legend = "Source with earliest \ndaily update")+
   theme(axis.text.x = element_text(angle = 90,
                                    vjust = 0.5,
                                    hjust = 1),
         axis.text = element_text(size = 14),
         title = element_text(size = 16),
         strip.text = element_text(size=14),
-        legend.text=element_text(size=14)) +
-  facet_wrap(~ Country, scales = 'free_y', ncol = 6)
+        legend.text=element_text(size=14)) 
 
 plot_country
 ggsave(paste("outputs/time_diff", Sys.Date(), country, ".jpeg", sep="_"), plot_country,
@@ -439,7 +431,7 @@ df_all_notime_euro %>%
   get_summary_stats(diff_min_num, type = "median_iqr")
 
 stat_euro <- df_all_notime_euro %>% 
-  rstatix::wilcox_test(diff_min_num ~ diff_min_cat) %>% 
+  rstatix::wilcox_test(diff_min_num ~ diff_min_cat, conf.level = 0.95) %>% 
   add_significance() 
 stat_euro
 
@@ -447,14 +439,16 @@ stat_euro_size <- df_all_notime_euro %>%
   wilcox_effsize(diff_min_num ~ diff_min_cat)
 stat_euro_size
 
-ggplot(df_all_notime_euro, aes(diff_min_cat, diff_min_num)) +
+euro_plot_notime <- ggplot(df_all_notime_euro, aes(diff_min_cat, diff_min_num)) +
   geom_boxplot() +
   stat_pvalue_manual(stat_euro %>% add_xy_position(x = "diff_min_cat"), tip.length = 0) +
   labs(x = "Earliest source",
        y = "Difference with the other source (min)",
+       title = "Non-EU/EEA countries from WHO European region",
        subtitle = get_test_label(stat_euro, detailed = TRUE)) +
-  theme_bw()
-
+  theme_bw() +
+  theme(plot.title = element_text(size = 12))
+euro_plot_notime
 
 #### Europe/EU-EEA ----------------------
 df_all_notime_eueea <- df_all_notime %>% 
@@ -468,7 +462,7 @@ df_all_notime_eueea %>%
   get_summary_stats(diff_min_num, type = "median_iqr")
 
 stat_eueea <- df_all_notime_eueea %>% 
-  rstatix::wilcox_test(diff_min_num ~ diff_min_cat) %>% 
+  rstatix::wilcox_test(diff_min_num ~ diff_min_cat, conf.level = 0.95) %>% 
   add_significance() 
 stat_eueea
 
@@ -476,14 +470,17 @@ stat_eueea_size <- df_all_notime_eueea %>%
   wilcox_effsize(diff_min_num ~ diff_min_cat)
 stat_eueea_size
 
-ggplot(df_all_notime_eueea, aes(diff_min_cat, diff_min_num)) +
+eueea_plot_notime <- ggplot(df_all_notime_eueea, aes(diff_min_cat, diff_min_num)) +
   geom_boxplot() +
   stat_pvalue_manual(stat_eueea %>% add_xy_position(x = "diff_min_cat"), tip.length = 0) +
   labs(x = "Earliest source",
        y = "Difference with the other source (min)",
+       title = "EU/EEA countries from WHO European region",
        subtitle = get_test_label(stat_eueea, detailed = TRUE)) +
-  theme_bw()
+  theme_bw() +
+  theme(plot.title = element_text(size = 12))
 
+eueea_plot_notime
 
 #### Africa ----------------------
 df_all_notime_afro <- df_all_notime %>% 
@@ -497,7 +494,7 @@ df_all_notime_afro %>%
   get_summary_stats(diff_min_num, type = "median_iqr")
 
 stat_afro <- df_all_notime_afro %>% 
-  rstatix::wilcox_test(diff_min_num ~ diff_min_cat) %>% 
+  rstatix::wilcox_test(diff_min_num ~ diff_min_cat, conf.level = 0.95) %>% 
   add_significance() 
 stat_afro
 
@@ -505,13 +502,17 @@ stat_afro_size <- df_all_notime_afro %>%
   wilcox_effsize(diff_min_num ~ diff_min_cat)
 stat_afro_size
 
-ggplot(df_all_notime_afro, aes(diff_min_cat, diff_min_num)) +
+afro_plot_notime <- ggplot(df_all_notime_afro, aes(diff_min_cat, diff_min_num)) +
   geom_boxplot() +
   stat_pvalue_manual(stat_afro %>% add_xy_position(x = "diff_min_cat"), tip.length = 0) +
   labs(x = "Earliest source",
        y = "Difference with the other source (min)",
+       title = "Countries from WHO African region",
        subtitle = get_test_label(stat_afro, detailed = TRUE)) +
-  theme_bw()
+  theme_bw() +
+  theme(plot.title = element_text(size = 12))
+
+afro_plot_notime
 
 ### All regions ------------
 stat_all <- rbind(stat_euro, stat_eueea, stat_afro) 
@@ -519,10 +520,16 @@ stat_all %>%
   mutate(p = formatC(p, format = "e", digits = 2)) %>% 
   flextable()
 
+plot_all_notime <- ggarrange(euro_plot_notime, eueea_plot_notime, afro_plot_notime, ncol = 3)
+plot_all_notime
+
+ggsave(paste("outputs/wilcoxon_plot_asof", Sys.Date(), ".jpeg", sep=""), plot_all_notime,
+       width = 20, height = 10, units = "in")
 
 ### Plots ---------------
 plot_notime <- df_all_notime %>% 
   filter(diff_min_cat != "No difference") %>% 
+  mutate(diff_min_num = abs(diff_min_num)) %>% 
   ggplot(aes(x = Country, y = diff_min_num, colour = diff_min_cat)) +
   geom_boxplot() +
   #geom_box(size = 2, shape = 5) +
@@ -540,9 +547,11 @@ plot_notime <- df_all_notime %>%
         title = element_text(size = 16),
         strip.text = element_text(size=14),
         legend.text=element_text(size=14)) +
-  facet_wrap(~ WHO_reg, scales = 'free_x', ncol = 3)
+  facet_grid(diff_min_cat ~ WHO_reg, scales = "free")
+  #facet_wrap(~diff_min_cat, ncol = 2)
+  #facet_wrap2(vars(diff_min_cat), ncol = 1)
+  #facet_wrap(~diff_min_cat, ncol = 1)
   
-
 plot_notime
 
 ggsave(paste("outputs/updates_no_time_asof", Sys.Date(), ".jpeg", sep=""), plot_notime,
