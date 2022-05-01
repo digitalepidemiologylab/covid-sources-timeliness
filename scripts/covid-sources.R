@@ -1,8 +1,8 @@
 # Script information
-#' Title:
+#' Title: Timeliness of COVID-19 public sources
 #' Author: Laura Espinosa
 #' Date created: 11 November 2021
-#' Date modified: 19 March 2022
+#' Date modified: 1 May 2022
 
 # Packages --------------
 # install/load "pacman" to help installing and loading other packages
@@ -12,8 +12,7 @@ while (require("pacman") == FALSE) {
 }
 
 # Install and/or load packages
-p_load(plotly, tidyverse, jsonlite, rjson, plyr, hms, gplots, flextable, rstatix,
-       coin, ggpubr)
+p_load(tidyverse, jsonlite, rjson, plyr, hms, flextable, rstatix)
 
 # Import data --------------
 # Data from webscraper
@@ -104,8 +103,6 @@ smedia_updates <- distinct(df_smedia_clean, Country, Date) %>%
   complete(Date, nesting(Country), fill = list(count_number = 1))
 
 smedia_updates <- dplyr::rename(smedia_updates, "date_smedia" = "Date")
-smedia_updates$date_smedia <- as.Date(smedia_updates$date_smedia,
-                                      format = "%d/%m/%Y") 
 
 # merge
 web_smedia_updates <- full_join(website_updates, smedia_updates, 
@@ -177,11 +174,6 @@ plot_update
 ggsave(paste("outputs/updates_asof", Sys.Date(), ".jpeg", sep=""), plot_update,
        width = 20, height = 10, units = "in")
 
-
-plot_update_plotly <- ggplotly(plot_update)
-plot_update_plotly
-
-
 plot_update_EURO <- web_smedia_updates %>% 
   filter(WHO_reg == "Europe/Non-EU-EEA" | WHO_reg == "Europe/EU-EEA") %>% 
   ggplot(aes(Date, Country)) +
@@ -224,7 +216,7 @@ ggsave(paste("outputs/updates_AFRO_asof", Sys.Date(), ".jpeg", sep=""), plot_upd
 ## Merge both datasets ----------------------
 df_all <- df_web_clean %>% 
   left_join(df_smedia_clean, by = c("Country"="Country", "date_web"="date_smedia", "WHO_reg"="WHO_reg")) %>% 
-  select(-Source, -Deaths, -Comments) %>% 
+  select(-Source, -Comments) %>% 
   mutate(diff_min = round(difftime(datetime_web, datetime_smedia, units = "mins"), 2)) %>% 
   filter(datetime_web >= "2021-11-01") %>% 
   arrange(Country, datetime_web)
