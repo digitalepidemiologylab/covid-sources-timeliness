@@ -12,7 +12,7 @@ while (require("pacman") == FALSE) {
 }
 
 # Install and/or load packages
-p_load(tidyverse, jsonlite, rjson, plyr, hms, flextable, rstatix)
+p_load(tidyverse, rjson, hms, flextable, rstatix, webshot, ggpubr, coin)
 
 # Import data --------------
 # Data from webscraper
@@ -68,7 +68,6 @@ df_web_clean <- df_web_clean %>%
 
 ## Clean social media df ----------------
 start_study <- as.Date("2022-01-31") # filter by start date of the study
-#end_study <- as.Date("2022-02-24")
 
 df_smedia_clean <- df_smedia %>% 
   mutate(
@@ -79,8 +78,7 @@ df_smedia_clean <- df_smedia %>%
                                                                                        format = "%Y-%m-%d %H:%M:%OS"),
                                 TRUE ~ as.POSIXct(NA))
   ) %>% 
-  filter(date_smedia >= start_study) #%>% 
-  #filter(date_smedia <= end_study)
+  filter(date_smedia >= start_study) 
 
 # Countries in web and social media ---------------
 # country names
@@ -89,7 +87,16 @@ df_names_smedia <- unique(df_smedia$Country)
 
 # Countries in social media not present in webscraper
 missing <- setdiff(df_names_smedia, df_names)
-missing
+
+if(length(missing)==0){
+  print("No missing countries in the webscraper")
+} else {
+  if(length(missing)==1){
+    print(paste0(missing, " country missing in the webscraper"))
+  } else {
+    print(paste0(missing, " countries missing in the webscraper"))
+  }
+}
 
 # Dates and countries with updates in website and/or social media-----------
 # website
@@ -131,6 +138,8 @@ updates_total <- updates_tab %>%
   dplyr::group_by(WHO_reg) %>% 
   dplyr::summarise(n = sum(n))
 
+set_flextable_defaults(background.color = "white")
+
 updates_merge <- updates_tab %>% 
   full_join(updates_total, by = c("WHO_reg", "n")) %>% 
   arrange(WHO_reg) %>% 
@@ -150,29 +159,32 @@ updates_merge <- updates_tab %>%
   #autofit() %>% 
   width(width = c(1.8, 1.5, 1.5, 1)) %>% 
   #align_nottext_col(align = "center", header = TRUE) %>% 
-  align(j = c(3,4), align = "center", part = "all")
+  align(j = c(3,4), align = "center", part = "all") 
 
 updates_merge
 
+flextable::save_as_image(updates_merge, 'outputs/table1.jpeg')
+
 ## plot with updates ----------------------------
-plot_update <- ggplot(web_smedia_updates, aes(Date, Country)) +
+plot_update_fig1 <- ggplot(web_smedia_updates, aes(Date, Country)) +
   geom_tile(aes(fill = Update)) +
-  scale_x_date(breaks = "2 days", date_labels = "%d %b %Y") +
+  scale_x_date(breaks = "4 days", date_labels = "%d %b %Y") +
   scale_fill_manual(values = c("white", "yellow", "orange", "red")) +
-  ggtitle("Dates when website and/or social media platforms have been updated by the countries") +
+  #ggtitle("Dates when website and/or social media platforms have been updated by the countries") +
   theme_classic() +
-  theme(axis.text.x = element_text(angle = 90, hjust = 0.5, vjust = 0.5),
+  theme(axis.text.x = element_text(angle = 90, hjust = 0.5, vjust = 0.5, size = 16),
+        axis.text.y = element_text(size = 16),
         title = element_text(size = 18),
-        axis.title = element_text(size = 14),
-        axis.text = element_text(size = 12)) +
+        axis.title = element_text(size = 18),
+        strip.text.x = element_text(size = 16),
+        legend.text=element_text(size=16)) +
   coord_cartesian(xlim = c(min(web_smedia_updates$Date), 
                            max(web_smedia_updates$Date))) +
   facet_wrap(~ WHO_reg, scales = 'free_y', ncol = 3)
 
-plot_update
+plot_update_fig1
 
-ggsave(paste("outputs/updates_asof", Sys.Date(), ".jpeg", sep=""), plot_update,
-       width = 20, height = 10, units = "in")
+ggsave("outputs/fig1.jpeg", plot_update_fig1, width = 20, height = 10, units = "in")
 
 plot_update_EURO <- web_smedia_updates %>% 
   filter(WHO_reg == "Europe/Non-EU-EEA" | WHO_reg == "Europe/EU-EEA") %>% 
@@ -182,16 +194,16 @@ plot_update_EURO <- web_smedia_updates %>%
   scale_fill_manual(values = c("white", "yellow", "orange", "red")) +
   ggtitle("Dates when website and/or social media platforms have been updated by the countries, WHO EURO region") +
   theme_classic() +
-  theme(axis.text.x = element_text(angle = 90, hjust = 0.5, vjust = 0.5),
+  theme(axis.text.x = element_text(angle = 90, hjust = 0.5, vjust = 0.5, size = 16),
+        axis.text.y = element_text(size = 16),
         title = element_text(size = 18),
-        axis.title = element_text(size = 14),
-        axis.text = element_text(size = 12)) 
+        axis.title = element_text(size = 18),
+        legend.text=element_text(size=16)) 
 
 plot_update_EURO
 
   
-ggsave(paste("outputs/updates_EURO_asof", Sys.Date(), ".jpeg", sep=""), plot_update_EURO,
-       width = 20, height = 10, units = "in")
+ggsave("outputs/updates_EURO.jpeg", plot_update_EURO, width = 20, height = 10, units = "in")
 
 plot_update_AFRO <- web_smedia_updates %>% 
   filter(WHO_reg == "Africa" & Date >= "2022-02-11") %>% 
@@ -201,16 +213,16 @@ plot_update_AFRO <- web_smedia_updates %>%
   scale_fill_manual(values = c("white", "yellow", "orange", "red")) +
   ggtitle("Dates when website and/or social media platforms have been updated by the countries, WHO AFRO region") +
   theme_classic() +
-  theme(axis.text.x = element_text(angle = 90, hjust = 0.5, vjust = 0.5),
+  theme(axis.text.x = element_text(angle = 90, hjust = 0.5, vjust = 0.5, size = 16),
+        axis.text.y = element_text(size = 16),
         title = element_text(size = 18),
-        axis.title = element_text(size = 14),
-        axis.text = element_text(size = 12)) 
+        axis.title = element_text(size = 18),
+        legend.text=element_text(size=16)) 
 
 plot_update_AFRO
 
 
-ggsave(paste("outputs/updates_AFRO_asof", Sys.Date(), ".jpeg", sep=""), plot_update_AFRO,
-       width = 20, height = 10, units = "in")
+ggsave("outputs/updates_AFRO.jpeg", plot_update_AFRO, width = 20, height = 10, units = "in")
 
 
 ## Merge both datasets ----------------------
@@ -261,7 +273,7 @@ plot <- df_all_country %>%
   filter(!is.na(diff_min_num)) %>% 
   arrange(desc(diff_min_num)) %>% 
   # plot categories by colour
-  ggplot(aes(x = date_web, y = diff_min_num, colour = diff_min_cat)) +
+  ggplot(aes(x = date_web, y = diff_min_num)) +
   geom_line(size = 1, colour = "light grey") +
   #geom_point(size = 2, shape = diff_min_cat) +
   geom_point(aes(x = date_web, y = diff_min_num, shape = diff_min_cat, colour = diff_min_cat)) +
@@ -275,8 +287,8 @@ plot <- df_all_country %>%
   theme_classic() +
   labs(title = "Time difference (minutes) between website pages and social media posts \non COVID-19 cases in WHO EURO and AFRO regions",
        x = "Date (year, month and day)",
-       y = "Time difference (minutes)",
-       legend = "Source with earliest \ndaily update")+
+       y = "Time difference (minutes)")+
+  #guides(colour =guide_legend(title = "Earliest shource")) +
   theme(axis.text.x = element_text(angle = 90,
                                    vjust = 0.5,
                                    hjust = 1),
@@ -288,8 +300,7 @@ plot <- df_all_country %>%
 
 plot # show plot
 
-ggsave(paste("outputs/time_diff_allregions_", Sys.Date(), ".jpeg", sep=""), plot,
-       width = 20, height = 10, units = "in")
+ggsave("outputs/time_diff_allregions.jpeg", plot, width = 20, height = 10, units = "in")
 
 ## Plot for EURO ------------
 plot_euro <- df_all_country %>%
@@ -298,7 +309,7 @@ plot_euro <- df_all_country %>%
   filter(WHO_reg == "Europe/Non-EU-EEA" | WHO_reg == "Europe/EU-EEA") %>% 
   arrange(desc(diff_min)) %>% 
   # plot categories by colour
-  ggplot(aes(x = date_web, y = diff_min_num, colour = diff_min_cat)) +
+  ggplot(aes(x = date_web, y = diff_min_num)) +
   geom_line(size = 1, colour = "light grey") +
   #geom_point(size = 2, shape = diff_min_cat) +
   geom_point(aes(x = date_web, y = diff_min_num, shape = diff_min_cat, colour = diff_min_cat)) +
@@ -325,8 +336,7 @@ plot_euro <- df_all_country %>%
 
 plot_euro # show plot
 
-ggsave(paste("outputs/time_diff_euro_", Sys.Date(), ".jpeg", sep=""), plot_euro,
-       width = 20, height = 10, units = "in")
+ggsave("outputs/time_diff_euro.jpeg", plot_euro, width = 20, height = 10, units = "in")
 
 ## Plot for AFRO ------------
 plot_afro <- df_all_country %>%
@@ -335,7 +345,7 @@ plot_afro <- df_all_country %>%
   filter(WHO_reg == "Africa") %>% 
   arrange(desc(diff_min)) %>% 
   # plot categories by colour
-  ggplot(aes(x = date_web, y = diff_min_num, colour = diff_min_cat)) +
+  ggplot(aes(x = date_web, y = diff_min_num)) +
   geom_line(size = 1, colour = "light grey") +
   #geom_point(size = 2, shape = diff_min_cat) +
   geom_point(aes(x = date_web, y = diff_min_num, shape = diff_min_cat, colour = diff_min_cat)) +
@@ -362,8 +372,7 @@ plot_afro <- df_all_country %>%
 
 plot_afro # show plot
 
-ggsave(paste("outputs/time_diff_afro_", Sys.Date(), ".jpeg", sep=""), plot_afro,
-       width = 20, height = 10, units = "in")
+ggsave("outputs/time_diff_afro.jpeg", plot_afro, width = 20, height = 10, units = "in")
 
 
 ## Plot for a single country ------------
@@ -401,7 +410,7 @@ plot_country <- df_all_country %>%
         legend.text=element_text(size=14)) 
 
 plot_country
-ggsave(paste("outputs/time_diff", Sys.Date(), country, ".jpeg", sep="_"), plot_country,
+ggsave(paste("outputs/time_diff", country, ".jpeg", sep="_"), plot_country,
        width = 20, height = 10, units = "in")
 
 ## Countries and updates without time component ----------------------------
@@ -512,14 +521,13 @@ stat_all %>%
   mutate(p = formatC(p, format = "e", digits = 2)) %>% 
   flextable()
 
-plot_all_notime <- ggarrange(euro_plot_notime, eueea_plot_notime, afro_plot_notime, ncol = 3)
-plot_all_notime
+plot_all_notime_fig3 <- ggarrange(euro_plot_notime, eueea_plot_notime, afro_plot_notime, ncol = 3)
+plot_all_notime_fig3
 
-ggsave(paste("outputs/wilcoxon_plot_asof", Sys.Date(), ".jpeg", sep=""), plot_all_notime,
-       width = 20, height = 10, units = "in")
+ggsave("outputs/fig3.jpeg", plot_all_notime_fig3, width = 20, height = 10, units = "in")
 
 ### Plots ---------------
-plot_notime <- df_all_notime %>% 
+plot_notime_fig2 <- df_all_notime %>% 
   filter(diff_min_cat != "No difference") %>% 
   mutate(diff_min_num = abs(diff_min_num)) %>% 
   ggplot(aes(x = Country, y = diff_min_num, colour = diff_min_cat)) +
@@ -540,14 +548,10 @@ plot_notime <- df_all_notime %>%
         strip.text = element_text(size=14),
         legend.text=element_text(size=14)) +
   facet_grid(diff_min_cat ~ WHO_reg, scales = "free")
-  #facet_wrap(~diff_min_cat, ncol = 2)
-  #facet_wrap2(vars(diff_min_cat), ncol = 1)
-  #facet_wrap(~diff_min_cat, ncol = 1)
   
-plot_notime
+plot_notime_fig2
 
-ggsave(paste("outputs/updates_no_time_asof", Sys.Date(), ".jpeg", sep=""), plot_notime,
-       width = 20, height = 10, units = "in")
+ggsave("outputs/fig2.jpeg", plot_notime_fig2, width = 20, height = 10, units = "in")
 
 ## Countries according to website/social media timeliness ----------------
 # At least one day website earlier
@@ -565,33 +569,33 @@ unique(df_all_country_smedia$Country)
 # Countries with earliest updates always from social media
 social_media_countries <- setdiff(unique(df_all_country_smedia$Country), unique(df_all_country_web$Country))
 social_media_countries 
-length(social_media_countries) #9
+length(social_media_countries) #7
 
 # Countries with earliest updates always from website
 website_countries <- setdiff(unique(df_all_country_web$Country), unique(df_all_country_smedia$Country))
 website_countries
-length(website_countries) #10
+length(website_countries) #9
 
 # Countries with not a unique source being the earliest always
 countries_unique_source <- append(social_media_countries, website_countries)
 all_countries <- unique(df_all_country$Country)
 countries_not_unique_source <- setdiff(all_countries, countries_unique_source)
 countries_not_unique_source 
-length(countries_not_unique_source) # 45
+length(countries_not_unique_source) # 47
 
 # Total countries
-length(unique(df_all_country$Country)) #62
+length(unique(df_all_country$Country)) #63
 
 ## EURO total
 all_countries_euro <- df_all_country %>% 
   filter(WHO_reg == "Europe/Non-EU-EEA" | WHO_reg == "Europe/EU-EEA") 
 
 all_countries_euro <- unique(all_countries_euro$Country)
-length(all_countries_euro) # 35
+length(all_countries_euro) # 34
 
 ## AFRO total
 all_countries_afro <- df_all_country %>% 
   filter(WHO_reg == "Africa") 
 
 all_countries_afro <- unique(all_countries_afro$Country)
-length(all_countries_afro) # 27
+length(all_countries_afro) # 29
