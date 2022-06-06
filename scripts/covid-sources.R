@@ -12,7 +12,8 @@ while (require("pacman") == FALSE) {
 }
 
 # Install and/or load packages
-p_load(tidyverse, rjson, hms, flextable, rstatix, webshot, ggpubr, coin)
+p_load(tidyverse, rjson, hms, flextable, rstatix, webshot, 
+       ggpubr, coin, janitor)
 
 # Import data --------------
 # Data from webscraper
@@ -100,16 +101,24 @@ if(length(missing)==0){
 
 # Dates and countries with updates in website and/or social media-----------
 # website
-website_updates <- distinct(df_web_clean, Country, date_web) %>% 
+website_updates <- df_web_clean %>% 
+  filter(!is.na(time_web)) %>% 
+  distinct(Country, date_web) %>% 
   mutate(update_web = 1) %>% 
-  complete(date_web, nesting(Country), fill = list(count_number = 1))
+  complete(date_web, nesting(Country), fill = list(count_number = 1)) %>% 
+  mutate(update_web = replace(update_web, 
+                                 is.na(update_web), 0))
 
 # social media
-smedia_updates <- distinct(df_smedia_clean, Country, Date) %>% 
+smedia_updates <- df_smedia_clean %>% 
+  filter(!is.na(Time)) %>% 
+  distinct(Country, date_smedia) %>% 
   mutate(update_smedia = 1) %>% 
-  complete(Date, nesting(Country), fill = list(count_number = 1))
+  complete(date_smedia, nesting(Country), fill = list(count_number = 1)) %>% 
+  mutate(update_smedia = replace(update_smedia, 
+                                 is.na(update_smedia), 0))
 
-smedia_updates <- dplyr::rename(smedia_updates, "date_smedia" = "Date")
+#smedia_updates <- dplyr::rename(smedia_updates, "date_smedia" = "Date")
 
 # merge
 web_smedia_updates <- full_join(website_updates, smedia_updates, 
@@ -117,10 +126,10 @@ web_smedia_updates <- full_join(website_updates, smedia_updates,
                                        "Country" = "Country")) %>% 
   left_join(who_reg) %>% 
   mutate(Date = date_web,
-         Update = case_when(is.na(update_web) & is.na(update_smedia) ~ "1. No update", # no update
-                            !is.na(update_web) & is.na(update_smedia)  ~ "2. Website update", # only website update
-                            is.na(update_web) & !is.na(update_smedia) ~ "3. Social media update", # only social media update
-                            !is.na(update_web) & !is.na(update_smedia) ~ "4. Social media & \nwebsite update", # website and social media update
+         Update = case_when(update_web == 0 & update_smedia == 0 ~ "1. No update", # no update
+                            update_web == 1 & update_smedia == 0  ~ "2. Website update", # only website update
+                            update_web == 0 & update_smedia ==1 ~ "3. Social media update", # only social media update
+                            update_web == 1 & update_smedia == 1 ~ "4. Social media & \nwebsite update", # website and social media update
                             TRUE ~ "None"),
          Filter = case_when(WHO_reg == "Africa" & Date <= "2022-02-12" ~ "filter", # to delete entries outside study period
                             TRUE ~ "keep")) %>% 
@@ -140,7 +149,7 @@ updates_total <- updates_tab %>%
 
 set_flextable_defaults(background.color = "white")
 
-updates_merge <- updates_tab %>% 
+updates_merge_table1 <- updates_tab %>% 
   full_join(updates_total, by = c("WHO_reg", "n")) %>% 
   arrange(WHO_reg) %>% 
   mutate(Update = case_when(is.na(Update) ~ "Overall",
@@ -161,7 +170,7 @@ updates_merge <- updates_tab %>%
   #align_nottext_col(align = "center", header = TRUE) %>% 
   align(j = c(3,4), align = "center", part = "all") 
 
-updates_merge
+updates_merge_table1
 
 flextable::save_as_image(updates_merge, 'outputs/table1.jpeg')
 
@@ -230,7 +239,7 @@ df_all <- df_web_clean %>%
   left_join(df_smedia_clean, by = c("Country"="Country", "date_web"="date_smedia", "WHO_reg"="WHO_reg")) %>% 
   select(-Source, -Comments) %>% 
   mutate(diff_min = round(difftime(datetime_web, datetime_smedia, units = "mins"), 2)) %>% 
-  filter(datetime_web >= "2021-11-01") %>% 
+  #filter(datetime_web >= "2021-11-01") %>% 
   arrange(Country, datetime_web)
 
 # Descriptive analysis ---------------
@@ -245,7 +254,8 @@ df_all_country <- df_all %>%
                                   diff_min_num == 0 ~ "No difference",
                                   diff_min_num > 0 ~ "Social media",
                                   TRUE ~ NA_character_),
-         diff_min_num = abs(diff_min_num))
+         diff_min_num = abs(diff_min_num)) %>% 
+  filter(!is.na(diff_min_num))
 
 ## diff per source, country and region ------------------
 diff_stats <- df_all_country %>% 
@@ -554,6 +564,40 @@ plot_notime_fig2
 ggsave("outputs/fig2.jpeg", plot_notime_fig2, width = 20, height = 10, units = "in")
 
 ## Countries according to website/social media timeliness ----------------
+# Table with earliest source per WHO region
+df_all_notime_total <- df_all_notime %>% 
+  dplyr::group_by(WHO_reg, diff_min_cat) %>% 
+  tally() %>%  
+  dplyr::group_by(WHO_reg) %>% 
+  summarise(n = sum(n)) 
+
+df_all_notime_table2 <- df_all_notime %>% 
+  dplyr::group_by(WHO_reg, diff_min_cat) %>% 
+  tally() %>% 
+  full_join(df_all_notime_total) %>% 
+  arrange(WHO_reg) %>% 
+  mutate(diff_min_cat = case_when(is.na(diff_min_cat) ~ "Overall",
+                            TRUE ~ diff_min_cat),
+         Percentage = case_when(WHO_reg == "Africa" ~ paste(round((n / filter(df_all_notime_total, WHO_reg == "Africa")$n * 100), 
+                                                                  digits = 1), "%", sep = " "),
+                                WHO_reg == "Europe/EU-EEA" ~ paste(round((n / filter(df_all_notime_total, WHO_reg == "Europe/EU-EEA")$n * 100), 
+                                                                         digits = 1), "%", sep = " "),
+                                WHO_reg == "Europe/Non-EU-EEA" ~ paste(round((n / filter(df_all_notime_total, WHO_reg == "Europe/Non-EU-EEA")$n * 100), 
+                                                                             digits = 1), "%", sep = " "),
+                                TRUE ~ NA_character_)) %>% 
+  rename("Earliest source" = diff_min_cat,
+         "Region" = WHO_reg, "Number of entries" = n) %>% 
+  flextable() %>% 
+  bold(bold = TRUE, part = "header") %>% 
+  width(width = c(1.8, 1.5, 1.5, 1.5)) %>% 
+  align(j = c(3,4), align = "center", part = "all") 
+  
+
+df_all_notime_table2
+
+
+flextable::save_as_image(df_all_notime_table2, 'outputs/table2.jpeg')
+
 # At least one day website earlier
 df_all_country_web <- df_all_country %>% 
   filter(diff_min < 0)
