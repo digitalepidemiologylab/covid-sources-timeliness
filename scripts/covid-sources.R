@@ -181,6 +181,7 @@ plot_update_fig1 <- ggplot(web_smedia_updates, aes(Date, Country)) +
   scale_fill_manual(values = c("white", "yellow", "orange", "red")) +
   #ggtitle("Dates when website and/or social media platforms have been updated by the countries") +
   theme_classic() +
+  labs(x = "") +
   theme(axis.text.x = element_text(angle = 90, hjust = 0.5, vjust = 0.5, size = 16),
         axis.text.y = element_text(size = 16),
         title = element_text(size = 18),
@@ -297,7 +298,7 @@ plot_fig2 <- df_all_country %>%
              colour = "black") +
   theme_classic() +
   labs(title = "Time difference (minutes) between website pages and social media posts \non COVID-19 cases in WHO EURO and AFRO regions",
-       x = "Date (year, month and day)",
+       x = "",
        y = "Time difference (minutes)")+
   theme(axis.text.x = element_text(angle = 90,
                                    vjust = 0.5,
@@ -334,7 +335,7 @@ plot_euro <- df_all_country %>%
              colour = "black") +
   theme_classic() +
   labs(title = "Time difference (minutes) between website pages and social media posts \non COVID-19 cases in WHO European region",
-       x = "Date (year, month and day)",
+       x = "",
        y = "Time difference (minutes)",
        legend = "Source with earliest \ndaily update")+
   theme(axis.text.x = element_text(angle = 90,
@@ -372,7 +373,7 @@ plot_afro <- df_all_country %>%
              colour = "black") +
   theme_classic() +
   labs(title = "Time difference (minutes) between website pages and social media posts \non COVID-19 cases in WHO African region",
-       x = "Date (year, month and day)",
+       x = "",
        y = "Time difference (minutes)",
        legend = "Source with earliest \ndaily update")+
   theme(axis.text.x = element_text(angle = 90,
@@ -414,7 +415,7 @@ plot_country <- df_all_country %>%
              colour = "black") +
   theme_classic() +
   labs(title = paste("Time difference (minutes) between website pages and social media posts \non COVID-19 cases in ", country, sep = ""),
-       x = "Date (year, month and day)",
+       x = "",
        y = "Time difference (minutes)",
        legend = "Source with earliest \ndaily update")+
   theme(axis.text.x = element_text(angle = 90,
