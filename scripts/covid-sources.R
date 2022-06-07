@@ -172,12 +172,12 @@ updates_merge_table1 <- updates_tab %>%
 
 updates_merge_table1
 
-flextable::save_as_image(updates_merge, 'outputs/table1.jpeg')
+flextable::save_as_image(updates_merge_table1, 'outputs/table1.jpeg')
 
 ## plot with updates ----------------------------
 plot_update_fig1 <- ggplot(web_smedia_updates, aes(Date, Country)) +
   geom_tile(aes(fill = Update)) +
-  scale_x_date(breaks = "4 days", date_labels = "%d %b %Y") +
+  scale_x_date(breaks = "4 days", date_labels = "%d %b") +
   scale_fill_manual(values = c("white", "yellow", "orange", "red")) +
   #ggtitle("Dates when website and/or social media platforms have been updated by the countries") +
   theme_classic() +
@@ -278,18 +278,19 @@ diff_stats
 
 
 ## Plot with all countries and regions ------------
-plot <- df_all_country %>%
+plot_fig2 <- df_all_country %>%
   # delete NAs
   filter(!is.na(diff_min_num)) %>% 
   arrange(desc(diff_min_num)) %>% 
+  dplyr::rename("Earliest source" = diff_min_cat) %>% 
   # plot categories by colour
   ggplot(aes(x = date_web, y = diff_min_num)) +
   geom_line(size = 1, colour = "light grey") +
   #geom_point(size = 2, shape = diff_min_cat) +
-  geom_point(aes(x = date_web, y = diff_min_num, shape = diff_min_cat, colour = diff_min_cat)) +
+  geom_point(aes(x = date_web, y = diff_min_num, shape = `Earliest source`, colour = `Earliest source`)) +
   # specific colour according to category
   scale_color_manual(values = c("black", "blue", "red")) +
-  scale_x_date(breaks = "5 days") +
+  scale_x_date(breaks = "5 days", date_labels = "%d %b") +
   scale_y_continuous(n.breaks = 4)+
   geom_hline(yintercept = 0,
              linetype = "dashed",
@@ -298,7 +299,6 @@ plot <- df_all_country %>%
   labs(title = "Time difference (minutes) between website pages and social media posts \non COVID-19 cases in WHO EURO and AFRO regions",
        x = "Date (year, month and day)",
        y = "Time difference (minutes)")+
-  #guides(colour =guide_legend(title = "Earliest shource")) +
   theme(axis.text.x = element_text(angle = 90,
                                    vjust = 0.5,
                                    hjust = 1),
@@ -308,9 +308,9 @@ plot <- df_all_country %>%
         legend.text=element_text(size=14)) +
   facet_wrap(~ Country, scales = 'free_y', ncol = 6)
 
-plot # show plot
+plot_fig2 # show plot
 
-ggsave("outputs/time_diff_allregions.jpeg", plot, width = 20, height = 10, units = "in")
+ggsave("outputs/fig2.jpeg", plot_fig2, width = 20, height = 10, units = "in")
 
 ## Plot for EURO ------------
 plot_euro <- df_all_country %>%
@@ -318,14 +318,16 @@ plot_euro <- df_all_country %>%
   filter(!is.na(diff_min)) %>% 
   filter(WHO_reg == "Europe/Non-EU-EEA" | WHO_reg == "Europe/EU-EEA") %>% 
   arrange(desc(diff_min)) %>% 
+  dplyr::rename("Earliest source" = diff_min_cat) %>% 
   # plot categories by colour
   ggplot(aes(x = date_web, y = diff_min_num)) +
   geom_line(size = 1, colour = "light grey") +
   #geom_point(size = 2, shape = diff_min_cat) +
-  geom_point(aes(x = date_web, y = diff_min_num, shape = diff_min_cat, colour = diff_min_cat)) +
+  geom_point(aes(x = date_web, y = diff_min_num, shape = `Earliest source`, 
+                 colour = `Earliest source`)) +
   # specific colour according to category
   scale_color_manual(values = c("black", "blue", "red")) +
-  scale_x_date(breaks = "5 days") +
+  scale_x_date(breaks = "5 days", date_labels = "%d %b") +
   scale_y_continuous(n.breaks = 4)+
   geom_hline(yintercept = 0,
              linetype = "dashed",
@@ -353,15 +355,17 @@ plot_afro <- df_all_country %>%
   # delete NAs
   filter(!is.na(diff_min)) %>% 
   filter(WHO_reg == "Africa") %>% 
-  arrange(desc(diff_min)) %>% 
+  arrange(desc(diff_min)) %>%  
+  dplyr::rename("Earliest source" = diff_min_cat) %>% 
   # plot categories by colour
   ggplot(aes(x = date_web, y = diff_min_num)) +
   geom_line(size = 1, colour = "light grey") +
   #geom_point(size = 2, shape = diff_min_cat) +
-  geom_point(aes(x = date_web, y = diff_min_num, shape = diff_min_cat, colour = diff_min_cat)) +
+  geom_point(aes(x = date_web, y = diff_min_num, shape = `Earliest source`, 
+                 colour = `Earliest source`)) +
   # specific colour according to category
-  scale_color_manual(values = c("black", "blue", "red")) +
-  scale_x_date(breaks = "5 days") +
+  scale_color_manual(values = c("blue", "red")) +
+  scale_x_date(breaks = "5 days", date_labels = "%d %b") +
   scale_y_continuous(n.breaks = 4)+
   geom_hline(yintercept = 0,
              linetype = "dashed",
@@ -394,14 +398,16 @@ plot_country <- df_all_country %>%
   filter(!is.na(diff_min)) %>% 
   filter(Country == country) %>% 
   arrange(desc(diff_min)) %>% 
+  dplyr::rename("Earliest source" = diff_min_cat) %>% 
   # plot categories by colour
-  ggplot(aes(x = date_web, y = diff_min_num, colour = diff_min_cat)) +
+  ggplot(aes(x = date_web, y = diff_min_num)) +
   geom_line(size = 1, colour = "light grey") +
   #geom_point(size = 2, shape = diff_min_cat) +
-  geom_point(aes(x = date_web, y = diff_min_num, shape = diff_min_cat, colour = diff_min_cat)) +
+  geom_point(aes(x = date_web, y = diff_min_num, shape = `Earliest source`, 
+                 colour = `Earliest source`)) +
   # specific colour according to category
   scale_color_manual(values = c("black", "blue", "red")) +
-  scale_x_date(breaks = "5 days") +
+  scale_x_date(breaks = "5 days", date_labels = "%d %b") +
   scale_y_continuous(n.breaks = 4)+
   geom_hline(yintercept = 0,
              linetype = "dashed",
@@ -531,13 +537,13 @@ stat_all %>%
   mutate(p = formatC(p, format = "e", digits = 2)) %>% 
   flextable()
 
-plot_all_notime_fig3 <- ggarrange(euro_plot_notime, eueea_plot_notime, afro_plot_notime, ncol = 3)
-plot_all_notime_fig3
+plot_all_notime_fig4 <- ggarrange(euro_plot_notime, eueea_plot_notime, afro_plot_notime, ncol = 3)
+plot_all_notime_fig4
 
-ggsave("outputs/fig3.jpeg", plot_all_notime_fig3, width = 20, height = 10, units = "in")
+ggsave("outputs/fig4.jpeg", plot_all_notime_fig4, width = 20, height = 10, units = "in")
 
 ### Plots ---------------
-plot_notime_fig2 <- df_all_notime %>% 
+plot_notime_fig3 <- df_all_notime %>% 
   filter(diff_min_cat != "No difference") %>% 
   mutate(diff_min_num = abs(diff_min_num)) %>% 
   ggplot(aes(x = Country, y = diff_min_num, colour = diff_min_cat)) +
@@ -559,9 +565,9 @@ plot_notime_fig2 <- df_all_notime %>%
         legend.text=element_text(size=14)) +
   facet_grid(diff_min_cat ~ WHO_reg, scales = "free")
   
-plot_notime_fig2
+plot_notime_fig3
 
-ggsave("outputs/fig2.jpeg", plot_notime_fig2, width = 20, height = 10, units = "in")
+ggsave("outputs/fig3.jpeg", plot_notime_fig3, width = 20, height = 10, units = "in")
 
 ## Countries according to website/social media timeliness ----------------
 # Table with earliest source per WHO region
