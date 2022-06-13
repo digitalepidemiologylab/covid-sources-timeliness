@@ -149,7 +149,7 @@ updates_total <- updates_tab %>%
 
 set_flextable_defaults(background.color = "white")
 
-updates_merge_table1 <- updates_tab %>% 
+updates_merge_table1_csv <- updates_tab %>% 
   full_join(updates_total, by = c("WHO_reg", "n")) %>% 
   arrange(WHO_reg) %>% 
   mutate(Update = case_when(is.na(Update) ~ "Overall",
@@ -162,7 +162,12 @@ updates_merge_table1 <- updates_tab %>%
                                                                        digits = 1), "%", sep = " "),
                                 TRUE ~ NA_character_)) %>% 
   dplyr::rename("Region" = WHO_reg,
-                "Number of entries" = n) %>% 
+                "Number of entries" = n)  
+
+write.csv(updates_merge_table1_csv, "outputs/table1.csv",
+          row.names = FALSE) 
+
+updates_merge_table1 <- updates_merge_table1_csv %>% 
   flextable() %>% 
   bold(bold = TRUE, part = "header") %>% 
   #autofit() %>% 
@@ -465,7 +470,11 @@ euro_plot_notime <- ggplot(df_all_notime_euro, aes(diff_min_cat, diff_min_num)) 
        title = "Non-EU/EEA countries from WHO European region",
        subtitle = get_test_label(stat_euro, detailed = TRUE)) +
   theme_bw() +
-  theme(plot.title = element_text(size = 12))
+  theme(plot.title = element_text(size = 20),
+        plot.subtitle = element_text(size = 20),
+        axis.text = element_text(size = 18),
+        axis.title = element_text(size = 18))
+
 euro_plot_notime
 
 #### Europe/EU-EEA ----------------------
@@ -496,7 +505,10 @@ eueea_plot_notime <- ggplot(df_all_notime_eueea, aes(diff_min_cat, diff_min_num)
        title = "EU/EEA countries from WHO European region",
        subtitle = get_test_label(stat_eueea, detailed = TRUE)) +
   theme_bw() +
-  theme(plot.title = element_text(size = 12))
+  theme(plot.title = element_text(size = 20),
+        plot.subtitle = element_text(size = 20),
+        axis.text = element_text(size = 18),
+        axis.title = element_text(size = 18))
 
 eueea_plot_notime
 
@@ -528,7 +540,10 @@ afro_plot_notime <- ggplot(df_all_notime_afro, aes(diff_min_cat, diff_min_num)) 
        title = "Countries from WHO African region",
        subtitle = get_test_label(stat_afro, detailed = TRUE)) +
   theme_bw() +
-  theme(plot.title = element_text(size = 12))
+  theme(plot.title = element_text(size = 20),
+        plot.subtitle = element_text(size = 20),
+        axis.text = element_text(size = 18),
+        axis.title = element_text(size = 18))
 
 afro_plot_notime
 
@@ -541,7 +556,7 @@ stat_all %>%
 plot_all_notime_fig4 <- ggarrange(euro_plot_notime, eueea_plot_notime, afro_plot_notime, ncol = 3)
 plot_all_notime_fig4
 
-ggsave("outputs/fig4.jpeg", plot_all_notime_fig4, width = 20, height = 10, units = "in")
+ggsave("outputs/fig4.jpeg", plot_all_notime_fig4, width = 22, height = 10, units = "in")
 
 ### Plots ---------------
 plot_notime_fig3 <- df_all_notime %>% 
@@ -578,7 +593,7 @@ df_all_notime_total <- df_all_notime %>%
   dplyr::group_by(WHO_reg) %>% 
   summarise(n = sum(n)) 
 
-df_all_notime_table2 <- df_all_notime %>% 
+df_all_notime_table2_csv <- df_all_notime %>% 
   dplyr::group_by(WHO_reg, diff_min_cat) %>% 
   tally() %>% 
   full_join(df_all_notime_total) %>% 
@@ -593,7 +608,13 @@ df_all_notime_table2 <- df_all_notime %>%
                                                                              digits = 1), "%", sep = " "),
                                 TRUE ~ NA_character_)) %>% 
   rename("Earliest source" = diff_min_cat,
-         "Region" = WHO_reg, "Number of entries" = n) %>% 
+         "Region" = WHO_reg, "Number of entries" = n) 
+
+
+write.csv(df_all_notime_table2_csv, "outputs/table2.csv",
+          row.names = FALSE) 
+
+df_all_notime_table2 <- df_all_notime_table2_csv %>% 
   flextable() %>% 
   bold(bold = TRUE, part = "header") %>% 
   width(width = c(1.8, 1.5, 1.5, 1.5)) %>% 
