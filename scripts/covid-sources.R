@@ -168,10 +168,19 @@ write.csv(updates_merge_table1_csv, "outputs/table1.csv",
           row.names = FALSE) 
 
 updates_merge_table1 <- updates_merge_table1_csv %>% 
+  mutate(Update = str_replace_all(Update, 
+                                  "2. Website update",
+                                  "2. Update website only"),
+         Update = str_replace_all(Update,
+                                  "3. Social media update",
+                                  "3. Update social media only"),
+         Update = str_replace_all(Update,
+                                  "4. Social media & \nwebsite update",
+                                  "4. Update website &\n social media")) %>% 
   flextable() %>% 
   bold(bold = TRUE, part = "header") %>% 
   #autofit() %>% 
-  width(width = c(1.8, 1.5, 1.5, 1)) %>% 
+  width(width = c(1.8, 2, 1.5, 1)) %>% 
   #align_nottext_col(align = "center", header = TRUE) %>% 
   align(j = c(3,4), align = "center", part = "all") 
 
@@ -180,7 +189,17 @@ updates_merge_table1
 flextable::save_as_image(updates_merge_table1, 'outputs/table1.jpeg')
 
 ## plot with updates ----------------------------
-plot_update_fig1 <- ggplot(web_smedia_updates, aes(Date, Country)) +
+plot_update_fig1 <- web_smedia_updates %>% 
+  mutate(Update = str_replace_all(Update, 
+                                  "2. Website update",
+                                  "2. Update website only"),
+         Update = str_replace_all(Update,
+                                  "3. Social media update",
+                                  "3. Update social media only"),
+         Update = str_replace_all(Update,
+                                  "4. Social media & \nwebsite update",
+                                  "4. Update website &\n social media")) %>% 
+  ggplot(aes(Date, Country)) +
   geom_tile(aes(fill = Update)) +
   scale_x_date(breaks = "4 days", date_labels = "%d %b") +
   scale_fill_manual(values = c("white", "yellow", "orange", "red")) +
@@ -302,21 +321,21 @@ plot_fig2 <- df_all_country %>%
              linetype = "dashed",
              colour = "black") +
   theme_classic() +
-  labs(title = "Time difference (minutes) between website pages and social media posts \non COVID-19 cases in WHO EURO and AFRO regions",
+  labs(#title = "Time difference (minutes) between website pages and social media posts \non COVID-19 cases in WHO EURO and AFRO regions",
        x = "",
        y = "Time difference (minutes)")+
   theme(axis.text.x = element_text(angle = 90,
                                    vjust = 0.5,
                                    hjust = 1),
-        axis.text = element_text(size = 14),
+        axis.text = element_text(size = 16),
         title = element_text(size = 16),
-        strip.text = element_text(size=14),
-        legend.text=element_text(size=14)) +
+        strip.text = element_text(size=16),
+        legend.text=element_text(size=18)) +
   facet_wrap(~ Country, scales = 'free_y', ncol = 6)
 
 plot_fig2 # show plot
 
-ggsave("outputs/fig2.jpeg", plot_fig2, width = 20, height = 10, units = "in")
+ggsave("outputs/fig2.jpeg", plot_fig2, width = 20, height = 20, units = "in")
 
 ## Plot for EURO ------------
 plot_euro <- df_all_country %>%
@@ -564,6 +583,7 @@ plot_notime_fig3 <- df_all_notime %>%
   mutate(diff_min_num = abs(diff_min_num)) %>% 
   ggplot(aes(x = Country, y = diff_min_num, colour = diff_min_cat)) +
   geom_boxplot() +
+  coord_flip() +
   #geom_box(size = 2, shape = 5) +
   scale_color_manual(values = c("Website" = "red", 
                                 "Social media" = "blue")) +
@@ -579,11 +599,11 @@ plot_notime_fig3 <- df_all_notime %>%
         title = element_text(size = 16),
         strip.text = element_text(size=14),
         legend.text=element_text(size=14)) +
-  facet_grid(diff_min_cat ~ WHO_reg, scales = "free")
+  facet_grid(diff_min_cat ~ WHO_reg, scales = "free") 
   
 plot_notime_fig3
 
-ggsave("outputs/fig3.jpeg", plot_notime_fig3, width = 20, height = 10, units = "in")
+ggsave("outputs/fig3.jpeg", plot_notime_fig3, width = 20, height = 20, units = "in")
 
 ## Countries according to website/social media timeliness ----------------
 # Table with earliest source per WHO region
@@ -596,8 +616,10 @@ df_all_notime_total <- df_all_notime %>%
 df_all_notime_table2_csv <- df_all_notime %>% 
   dplyr::group_by(WHO_reg, diff_min_cat) %>% 
   tally() %>% 
+  ungroup() %>% 
+  add_row(WHO_reg = "Africa", diff_min_cat = "No difference", n = 0) %>% 
   full_join(df_all_notime_total) %>% 
-  arrange(WHO_reg) %>% 
+  arrange(WHO_reg, diff_min_cat) %>% 
   mutate(diff_min_cat = case_when(is.na(diff_min_cat) ~ "Overall",
                             TRUE ~ diff_min_cat),
          Percentage = case_when(WHO_reg == "Africa" ~ paste(round((n / filter(df_all_notime_total, WHO_reg == "Africa")$n * 100), 
@@ -608,7 +630,8 @@ df_all_notime_table2_csv <- df_all_notime %>%
                                                                              digits = 1), "%", sep = " "),
                                 TRUE ~ NA_character_)) %>% 
   rename("Earliest source" = diff_min_cat,
-         "Region" = WHO_reg, "Number of entries" = n) 
+         "Region" = WHO_reg, "Number of entries" = n)
+  
 
 
 write.csv(df_all_notime_table2_csv, "outputs/table2.csv",
@@ -671,3 +694,4 @@ all_countries_afro <- df_all_country %>%
 
 all_countries_afro <- unique(all_countries_afro$Country)
 length(all_countries_afro) # 29
+
