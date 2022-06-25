@@ -578,32 +578,36 @@ plot_all_notime_fig4
 ggsave("outputs/fig4.jpeg", plot_all_notime_fig4, width = 22, height = 10, units = "in")
 
 ### Plots ---------------
+
 plot_notime_fig3 <- df_all_notime %>% 
-  filter(diff_min_cat != "No difference") %>% 
-  mutate(diff_min_num = abs(diff_min_num)) %>% 
+  #filter(diff_min_cat != "No difference") %>% 
+  mutate(diff_min_num = case_when(diff_min_cat == "Website" ~ diff_min_num*-1,
+                                  diff_min_cat == "Social media" ~ diff_min_num,
+                                  TRUE ~ diff_min_num)) %>% 
   ggplot(aes(x = Country, y = diff_min_num, colour = diff_min_cat)) +
-  geom_boxplot() +
+  geom_point() +
   coord_flip() +
-  #geom_box(size = 2, shape = 5) +
-  scale_color_manual(values = c("Website" = "red", 
+  scale_color_manual(values = c("No difference" = "black", 
+                                "Website" = "red", 
                                 "Social media" = "blue")) +
-  labs(title = "Time difference (minutes) between website pages and social media posts \non COVID-19 cases in WHO European and African regions",
-       x = "Countries",
+  labs(x = "Countries",
        y = "Time difference (minutes)",
        color = "Source with earliest \ndaily update")+
   theme_bw() +
   theme(axis.text.x = element_text(angle = 90,
                                    vjust = 0.5,
                                    hjust = 1),
-        axis.text = element_text(size = 14),
+        axis.text = element_text(size = 18),
         title = element_text(size = 16),
-        strip.text = element_text(size=14),
-        legend.text=element_text(size=14)) +
-  facet_grid(diff_min_cat ~ WHO_reg, scales = "free") 
+        strip.text = element_text(size=18),
+        legend.text=element_text(size=16)#,
+        #legend.position = c(0.89, 0.92),
+        #legend.background = element_rect(fill = "white", color = "black")
+        ) 
   
 plot_notime_fig3
 
-ggsave("outputs/fig3.jpeg", plot_notime_fig3, width = 20, height = 20, units = "in")
+ggsave("outputs/fig3.jpeg", plot_notime_fig3, width = 10, height = 15, units = "in")
 
 ## Countries according to website/social media timeliness ----------------
 # Table with earliest source per WHO region
