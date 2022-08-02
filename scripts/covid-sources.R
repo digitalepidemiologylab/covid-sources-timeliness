@@ -12,8 +12,8 @@ while (require("pacman") == FALSE) {
 }
 
 # Install and/or load packages
-p_load(tidyverse, rjson, hms, flextable, rstatix, webshot, 
-       ggpubr, coin, janitor)
+p_load(tidyverse, rjson, hms, flextable, 
+       rstatix, ggpubr, janitor)
 
 # Import data --------------
 # Data from webscraper
@@ -84,7 +84,7 @@ df_smedia_clean <- df_smedia %>%
 # Countries in web and social media ---------------
 # country names
 df_names <- unique(df_web_clean$Country)
-df_names_smedia <- unique(df_smedia$Country)
+df_names_smedia <- unique(df_smedia_clean$Country)
 
 # Countries in social media not present in webscraper
 missing <- setdiff(df_names_smedia, df_names)
@@ -261,7 +261,7 @@ ggsave("outputs/updates_AFRO.jpeg", plot_update_AFRO, width = 20, height = 10, u
 
 ## Merge both datasets ----------------------
 df_all <- df_web_clean %>% 
-  left_join(df_smedia_clean, by = c("Country"="Country", "date_web"="date_smedia", "WHO_reg"="WHO_reg")) %>% 
+  full_join(df_smedia_clean, by = c("Country"="Country", "date_web"="date_smedia", "WHO_reg"="WHO_reg")) %>% 
   select(-Source, -Comments) %>% 
   mutate(diff_min = round(difftime(datetime_web, datetime_smedia, units = "mins"), 2)) %>% 
   #filter(datetime_web >= "2021-11-01") %>% 
@@ -279,8 +279,8 @@ df_all_country <- df_all %>%
                                   diff_min_num == 0 ~ "No difference",
                                   diff_min_num > 0 ~ "Social media",
                                   TRUE ~ NA_character_),
-         diff_min_num = abs(diff_min_num)) %>% 
-  filter(!is.na(diff_min_num))
+         diff_min_num = abs(diff_min_num)) #%>% 
+  #filter(!is.na(diff_min_num))
 
 ## diff per source, country and region ------------------
 diff_stats <- df_all_country %>% 
@@ -585,7 +585,7 @@ plot_notime_fig3 <- df_all_notime %>%
                                   diff_min_cat == "Social media" ~ diff_min_num,
                                   TRUE ~ diff_min_num)) %>% 
   ggplot(aes(x = Country, y = diff_min_num, colour = diff_min_cat)) +
-  geom_point() +
+  geom_point(size = 3, alpha = 0.4) +
   coord_flip() +
   scale_color_manual(values = c("No difference" = "black", 
                                 "Website" = "red", 
@@ -597,7 +597,7 @@ plot_notime_fig3 <- df_all_notime %>%
   theme(axis.text.x = element_text(angle = 90,
                                    vjust = 0.5,
                                    hjust = 1),
-        axis.text = element_text(size = 18),
+        axis.text = element_text(size = 16),
         title = element_text(size = 16),
         strip.text = element_text(size=18),
         legend.text=element_text(size=16)#,
@@ -668,34 +668,33 @@ unique(df_all_country_smedia$Country)
 # Countries with earliest updates always from social media
 social_media_countries <- setdiff(unique(df_all_country_smedia$Country), unique(df_all_country_web$Country))
 social_media_countries 
-length(social_media_countries) #7
+length(social_media_countries) 
 
 # Countries with earliest updates always from website
 website_countries <- setdiff(unique(df_all_country_web$Country), unique(df_all_country_smedia$Country))
 website_countries
-length(website_countries) #9
+length(website_countries) 
 
 # Countries with not a unique source being the earliest always
 countries_unique_source <- append(social_media_countries, website_countries)
 all_countries <- unique(df_all_country$Country)
 countries_not_unique_source <- setdiff(all_countries, countries_unique_source)
 countries_not_unique_source 
-length(countries_not_unique_source) # 47
+length(countries_not_unique_source) 
 
 # Total countries
-length(unique(df_all_country$Country)) #63
+length(unique(df_all_country$Country)) 
 
 ## EURO total
 all_countries_euro <- df_all_country %>% 
   filter(WHO_reg == "Europe/Non-EU-EEA" | WHO_reg == "Europe/EU-EEA") 
 
 all_countries_euro <- unique(all_countries_euro$Country)
-length(all_countries_euro) # 34
+length(all_countries_euro) 
 
 ## AFRO total
 all_countries_afro <- df_all_country %>% 
   filter(WHO_reg == "Africa") 
 
 all_countries_afro <- unique(all_countries_afro$Country)
-length(all_countries_afro) # 29
-
+length(all_countries_afro) 
