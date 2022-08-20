@@ -13,7 +13,7 @@ while (require("pacman") == FALSE) {
 
 # Install and/or load packages
 p_load(tidyverse, rjson, hms, flextable, 
-       rstatix, ggpubr, janitor)
+       rstatix, ggpubr, janitor, webshot2)
 
 # Import data --------------
 # Data from webscraper
@@ -186,7 +186,8 @@ updates_merge_table1 <- updates_merge_table1_csv %>%
 
 updates_merge_table1
 
-flextable::save_as_image(updates_merge_table1, 'outputs/table1.jpeg')
+flextable::save_as_image(updates_merge_table1, 'outputs/table1.png',
+                         webshot = "webshot2")
 
 ## plot with updates ----------------------------
 plot_update_fig1 <- web_smedia_updates %>% 
@@ -202,7 +203,7 @@ plot_update_fig1 <- web_smedia_updates %>%
   ggplot(aes(Date, Country)) +
   geom_tile(aes(fill = Update)) +
   scale_x_date(breaks = "4 days", date_labels = "%d %b") +
-  scale_fill_manual(values = c("white", "yellow", "orange", "red")) +
+  scale_fill_manual(values = c("white", "red", "blue", "purple")) +
   #ggtitle("Dates when website and/or social media platforms have been updated by the countries") +
   theme_classic() +
   labs(x = "") +
@@ -567,15 +568,44 @@ afro_plot_notime <- ggplot(df_all_notime_afro, aes(diff_min_cat, diff_min_num)) 
 afro_plot_notime
 
 ### All regions ------------
+#### Merging plots
 stat_all <- rbind(stat_euro, stat_eueea, stat_afro) 
 stat_all %>% 
   mutate(p = formatC(p, format = "e", digits = 2)) %>% 
   flextable()
 
-plot_all_notime_fig4 <- ggarrange(euro_plot_notime, eueea_plot_notime, afro_plot_notime, ncol = 3)
+plot_all_notime <- ggarrange(euro_plot_notime, eueea_plot_notime, afro_plot_notime, ncol = 3)
+plot_all_notime
+
+#ggsave("outputs/fig4.jpeg", plot_all_notime_fig4, width = 22, height = 10, units = "in")
+
+#### Merging data
+df_all_notime_afro$who_reg <- "Africa"
+df_all_notime_eueea$who_reg <- "Europe/EU-EEA"
+df_all_notime_euro$who_reg <- "Europe/Non-EU-EEA"
+
+df_all_notime_all <- df_all_notime_afro %>% 
+  full_join(df_all_notime_eueea) %>% 
+  full_join(df_all_notime_euro)
+
+plot_all_notime_fig4 <- df_all_notime_all %>% 
+  ggplot(aes(diff_min_num, diff_min_cat)) +
+  geom_boxplot() +
+  labs(y = "Earliest source",
+       x = "Difference with the other source (min)") +
+  theme_bw() +
+  theme(plot.title = element_text(size = 20),
+        plot.subtitle = element_text(size = 20),
+        axis.text = element_text(size = 18),
+        axis.title = element_text(size = 18),
+        strip.text.x = element_text(size = 18)) +
+  coord_flip() +
+  facet_grid(~who_reg)
+  
 plot_all_notime_fig4
 
-ggsave("outputs/fig4.jpeg", plot_all_notime_fig4, width = 22, height = 10, units = "in")
+ggsave("outputs/fig4.jpeg", plot_all_notime_fig4, width = 15, height = 10, units = "in")
+
 
 ### Plots ---------------
 
@@ -603,7 +633,8 @@ plot_notime_fig3 <- df_all_notime %>%
         legend.text=element_text(size=16)#,
         #legend.position = c(0.89, 0.92),
         #legend.background = element_rect(fill = "white", color = "black")
-        ) 
+        ) +
+  facet_wrap(~WHO_reg, scales = "free_y", ncol = 1)
   
 plot_notime_fig3
 
@@ -645,13 +676,14 @@ df_all_notime_table2 <- df_all_notime_table2_csv %>%
   flextable() %>% 
   bold(bold = TRUE, part = "header") %>% 
   width(width = c(1.8, 1.5, 1.5, 1.5)) %>% 
-  align(j = c(3,4), align = "center", part = "all") 
+  align(j = c(3,4), align = "center", part = "all")
   
 
 df_all_notime_table2
 
 
-flextable::save_as_image(df_all_notime_table2, 'outputs/table2.jpeg')
+flextable::save_as_image(df_all_notime_table2, 'outputs/table2.png',
+                         webshot = "webshot2")
 
 # At least one day website earlier
 df_all_country_web <- df_all_country %>% 
