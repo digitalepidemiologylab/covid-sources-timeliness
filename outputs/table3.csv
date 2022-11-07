@@ -1,0 +1,9 @@
+"WHO region","Earliest source","Median 
+(min)","Interquartile range 
+(Q3-Q1) (min)","Mean (min)","Standard deviation (min)"
+"Africa","Social media",108,230.55,186.39,206.85
+"Africa","Website",189.5,670.78,384.49,389.62
+"Europe/EU-EEA","Social media",105.72,328.67,239.37,281.95
+"Europe/EU-EEA","Website",26,48.36,66.89,124.94
+"Europe/Non-EU-EEA","Social media",11.2,39.54,57.5,125.7
+"Europe/Non-EU-EEA","Website",28.88,103.05,92.83,140.58

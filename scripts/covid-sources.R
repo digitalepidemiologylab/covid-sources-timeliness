@@ -15,6 +15,8 @@ while (require("pacman") == FALSE) {
 p_load(tidyverse, rjson, hms, flextable, 
        rstatix, ggpubr, janitor, webshot2)
 
+# In case of error when saving flextables, webshot2 has to be reinstalled
+
 # Import data --------------
 # Data from webscraper
 df_web <- fromJSON(file = "data/website.json")
@@ -284,23 +286,36 @@ df_all_country <- df_all %>%
   #filter(!is.na(diff_min_num))
 
 ## diff per source, country and region ------------------
-diff_stats <- df_all_country %>% 
+diff_stats_csv <- df_all_country %>% 
   #mutate(diff_min_num = abs(diff_min_num)) %>% 
   dplyr::group_by(diff_min_cat, WHO_reg) %>% 
   dplyr::summarise("Median \n(min)" = round(median(diff_min_num), digits = 2),
                    "Quartile 1 (Q1) \n(min)" = round(quantile(diff_min_num, prob = 0.25, na.rm = TRUE), digits = 2),
                    "Quartile 3 (Q3) \n(min)" = round(quantile(diff_min_num, prob = 0.75, na.rm = TRUE), digits = 2),
-                   "Interquartile range \n(Q3-Q1) (min)" = round(IQR(diff_min_num, na.rm = TRUE), digits = 2)) %>% 
+                   "Interquartile range \n(Q3-Q1) (min)" = round(IQR(diff_min_num, na.rm = TRUE), digits = 2),
+                   "Mean (min)" = round(mean(diff_min_num), digits = 2),
+                   "Standard deviation (min)" = round(sd(diff_min_num), digits = 2)) %>% 
   filter(!is.na(diff_min_cat)) %>% 
-  filter(diff_min_cat != "No difference") %>% 
+  filter(diff_min_cat != "No difference") %>%
+  arrange(WHO_reg) %>% 
+  select(WHO_reg, diff_min_cat, "Median \n(min)", "Interquartile range \n(Q3-Q1) (min)",
+         "Mean (min)", "Standard deviation (min)") %>% 
   dplyr::rename("Earliest source" = diff_min_cat,
-         "WHO region" = WHO_reg) %>% 
+         "WHO region" = WHO_reg) 
+
+write.csv(diff_stats_csv, "outputs/table3.csv",
+          row.names = FALSE) 
+
+diff_stats_tab3 <- diff_stats_csv %>% 
   flextable() %>% 
   bold(bold = TRUE, part = "header") %>% 
   width(width = 1.5) %>% 
   align_nottext_col(align = "center", header = TRUE)
   
-diff_stats
+diff_stats_tab3
+
+flextable::save_as_image(diff_stats_tab3, 'outputs/table3.png',
+                         webshot = 'webshot2')
 
 
 ## Plot with all countries and regions ------------
